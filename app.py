@@ -216,6 +216,7 @@ st.markdown(
     
     .stTextArea textarea:disabled {
         color: white !important;
+        -webkit-text-fill-color: white !important;
     }
     
     div[data-testid="stTextArea"] label {
