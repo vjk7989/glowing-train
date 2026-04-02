@@ -86,13 +86,13 @@ def detect_account(text):
     return results
 
 
-def call_lm_studio(text, prompt="Analyze and provide insights about the following text"):
+def call_lm_studio(text):
     url = "http://127.0.0.1:1234/v1/chat/completions"
     headers = {"Content-Type": "application/json"}
     payload = {
         "messages": [
-            {"role": "system", "content": "You are a helpful assistant that analyzes text and provides insights."},
-            {"role": "user", "content": f"{prompt}:\n\n{text}"}
+            {"role": "system", "content": "You are a helpful assistant. Answer the user's query."},
+            {"role": "user", "content": text}
         ],
         "temperature": 0.7,
         "max_tokens": 1000
@@ -382,7 +382,7 @@ with col2:
 
         if st.button("Get LLM Response"):
             with st.spinner("Sending to LM Studio..."):
-                llm_response = call_lm_studio(masked_text, prompt="Answer the following:")
+                llm_response = call_lm_studio(masked_text)
                 stitched_response = stitch_original_values(llm_response, pii_data)
 
                 st.markdown("**LLM Response (with original data):**")
