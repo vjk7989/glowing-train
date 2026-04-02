@@ -86,6 +86,34 @@ def detect_account(text):
     return results
 
 
+def call_lm_studio(text, prompt="Analyze and provide insights about the following text"):
+    url = "http://127.0.0.1:1234/v1/chat/completions"
+    headers = {"Content-Type": "application/json"}
+    payload = {
+        "messages": [
+            {"role": "system", "content": "You are a helpful assistant that analyzes text and provides insights."},
+            {"role": "user", "content": f"{prompt}:\n\n{text}"}
+        ],
+        "temperature": 0.7,
+        "max_tokens": 1000
+    }
+    try:
+        response = requests.post(url, headers=headers, json=payload, timeout=60)
+        response.raise_for_status()
+        return response.json()["choices"][0]["message"]["content"]
+    except Exception as e:
+        return f"Error calling LM Studio: {str(e)}"
+
+
+def stitch_original_values(llm_response, pii_data):
+    result = llm_response
+    for key, data in pii_data.items():
+        mask = PII_MASK_MAP.get(data["entity_type"], f"[{data['entity_type']}]")
+        result = result.replace(mask, data["original"])
+        result = result.replace(data["hashed"], data["original"])
+    return result
+
+
 st.set_page_config(page_title="Hyper-ABS", page_icon="🛡️", layout="wide")
 
 st.markdown(
@@ -184,6 +212,10 @@ st.markdown(
     .stTextArea textarea:focus {
         border-color: var(--primary);
         box-shadow: 0 0 0 2px var(--primary);
+    }
+    
+    .stTextArea textarea:disabled {
+        color: white !important;
     }
     
     div[data-testid="stTextArea"] label {
@@ -340,3 +372,26 @@ with col2:
             st.info("No PII detected")
 
     st.markdown("</div>", unsafe_allow_html=True)
+
+    if input_text:
+        st.markdown('<div class="card" style="margin-top: 1.5rem;">', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="card-title">🤖 LLM Analysis (with Original Data)</div>',
+            unsafe_allow_html=True,
+        )
+
+        if st.button("Get LLM Response"):
+            with st.spinner("Sending to LM Studio..."):
+                llm_response = call_lm_studio(masked_text, prompt="Answer the following:")
+                stitched_response = stitch_original_values(llm_response, pii_data)
+
+                st.markdown("**LLM Response (with original data):**")
+                st.text_area(
+                    "LLM Output:",
+                    value=stitched_response,
+                    height=200,
+                    disabled=True,
+                    label_visibility="collapsed",
+                )
+
+        st.markdown("</div>", unsafe_allow_html=True)
